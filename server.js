@@ -22,6 +22,10 @@ app.use(express.urlencoded({ extended: true }));
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // parse requests of content-type - application/json
+// parse requests of content-type - application/x-www-form-urlencoded
+app.use(express.urlencoded({ extended: true }));
+app.use(bodyParser.urlencoded({ extended: true }));
+
 app.use(bodyParser.json());
 
 app.use(
@@ -30,8 +34,16 @@ app.use(
   })
 );
 
+app.use("/uploads", express.static("uploads"));
+
 //User Routes
-app.use("/api/v1/user", require("./app/routes/usersRoutes"));
+app.use("/api/v1/users", require("./app/routes/usersRoutes"));
+
+//Project Routes
+app.use("/api/v1/projects", require("./app/routes/projectRoutes"));
+
+// Asset Routes
+app.use("/api/v1/upload", require("./app/upload-images.js"));
 
 app.listen(PORT, () => {
   console.log(`

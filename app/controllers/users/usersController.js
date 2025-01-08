@@ -1,13 +1,13 @@
 const { validationResult } = require("express-validator");
-const { pool } = require("../config/db");
+const { pool } = require("../../config/db");
 const nodemailer = require("nodemailer");
 const {
   createToken,
   hashedPassword,
   comparePassword,
-} = require("../services/authServices");
-const { emailUser, emailPass } = require("../config/envConfig");
-const { verifyToken } = require("../services/Authrization");
+} = require("../../services/authServices");
+const { emailUser, emailPass } = require("../../config/envConfig");
+const { verifyToken } = require("../../services/Authrization");
 
 class User {
   // Register user controller
@@ -173,10 +173,13 @@ class User {
         }
 
         // Generate token for email login
-        const token = createToken({
-          id: user.user_id,
-          name: user.user_name,
-        });
+        const token = createToken(
+          {
+            id: user.user_id,
+            name: user.user_name,
+          },
+          "7d"
+        );
 
         return res.status(200).json({
           error: false,
