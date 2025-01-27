@@ -18,15 +18,15 @@ class User {
       return res.status(400).json({ errors: errors.array(), error: true });
     }
 
-    const { user_name, email, password, signup_type, access_token } = req.body;
+    const { user_name, email, password, signup_type, fcm } = req.body;
 
-    if (!email || !signup_type) {
+    if (!email || !signup_type || !fcm) {
       return res.status(400).json({
         error: true,
         message: "Please provide both Email and Signup Type.",
       });
     }
-    if (signup_type === "google" && !access_token) {
+    if (signup_type === "GOOGLE" && !fcm) {
       return res.status(400).json({
         error: true,
         message: "Please provide Access Token for Google Signup.",
@@ -56,8 +56,8 @@ class User {
 
       // Insert new user
       const userData = await pool.query(
-        "INSERT INTO users (user_name, email, password, signup_type, access_token) VALUES ($1, $2, $3, $4, $5) RETURNING *",
-        [user_name, email, hashed, signup_type, access_token]
+        "INSERT INTO users (user_name, email, password, signup_type, fcm) VALUES ($1, $2, $3, $4, $5) RETURNING *",
+        [user_name, email, hashed, signup_type, fcm]
       );
 
       const user = userData.rows[0];
@@ -88,7 +88,7 @@ class User {
 
   // Login user controller
   async login(req, res) {
-    const { email, password, signup_type, access_token } = req.body;
+    const { email, password, signup_type, fcm } = req.body;
     const errors = validationResult(req);
 
     if (!errors.isEmpty()) {
@@ -111,7 +111,7 @@ class User {
       const user = userData.rows[0];
 
       // If the signup type in the database is 'google' and the user tries to log in with email/password
-      if (user.signup_type === "google" && signup_type === "email") {
+      if (user.signup_type === "GOOGLE" && signup_type === "EMAIL") {
         return res.status(400).json({
           error: true,
           message:
@@ -120,51 +120,41 @@ class User {
       }
 
       // Handle Google login
-      if (signup_type === "google") {
-        // Ensure access_token is provided
-        if (!access_token) {
+      if (signup_type === "GOOGLE") {
+        // Ensure fcm is provided
+        if (!fcm) {
           return res.status(400).json({
             error: true,
             message: "Access token is required for Google login.",
           });
         }
 
-        // Validate the access_token
-        if (user.access_token === access_token) {
-          // Generate a new token
-          const newToken = createToken(
-            {
-              id: user.user_id,
-              name: user.user_name,
-            },
-            "7d"
-          );
+        // Generate a new token
+        const newToken = createToken(
+          {
+            id: user.user_id,
+            name: user.user_name,
+          },
+          "7d"
+        );
 
-          // Optionally update the access_token in the database
-          await pool.query(
-            "UPDATE users SET access_token = $1 WHERE email = $2",
-            [newToken, email]
-          );
+        // Optionally update the fcm in the database
+        await pool.query("UPDATE users SET fcm = $1 WHERE email = $2", [
+          fcm,
+          email,
+        ]);
 
-          return res.status(200).json({
-            error: false,
-            message: "Login successful via Google.",
-            data: user,
-            token: newToken,
-          });
-        }
-
-        // If access_token does not match
-        return res.status(400).json({
-          error: true,
-          message: "Invalid access token.",
+        return res.status(200).json({
+          error: false,
+          message: "Login successful via Google.",
+          data: user,
+          token: newToken,
         });
       }
 
       // Handle email/password login
-      if (signup_type === "email") {
+      if (signup_type === "EMAIL") {
         const validPassword = await comparePassword(password, user.password);
-
         if (!validPassword) {
           return res.status(400).json({
             error: true,

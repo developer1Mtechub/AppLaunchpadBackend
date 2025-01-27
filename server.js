@@ -42,6 +42,9 @@ app.use("/api/v1/users", require("./app/routes/usersRoutes"));
 //Project Routes
 app.use("/api/v1/projects", require("./app/routes/projectRoutes"));
 
+//Page Routes
+app.use("/api/v1/pages", require("./app/routes/pagesRoutes"));
+
 // Asset Routes
 app.use("/api/v1/upload", require("./app/upload-images.js"));
 

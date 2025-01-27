@@ -8,8 +8,9 @@ module.exports.registerValidations = [
     .escape()
     .withMessage("email is required"),
   body("signup_type")
-    .isIn(["email", "google"]) // Validate ENUM values
-    .withMessage("Signup type must be either 'email' or 'google'"),
+    .isIn(["EMAIL", "GOOGLE"]) // Validate ENUM values
+    .withMessage("Signup type must be either 'EMAIL' or 'GOOGLE'"),
+  body("fcm").not().isEmpty().withMessage("FCM token is required"),
 ];
 
 module.exports.loginValidations = [
@@ -19,8 +20,9 @@ module.exports.loginValidations = [
     .trim()
     .escape()
     .withMessage("email is required"),
+  body("fcm").not().isEmpty().withMessage("FCM token is required"),
   body("signup_type")
-    .isIn(["email", "google"]) // Validate ENUM values
+    .isIn(["EMAIL", "GOOGLE"]) // Validate ENUM values
     .withMessage("Signup type must be either 'email' or 'google'"),
 ];
 module.exports.emailValidation = [
