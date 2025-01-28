@@ -5,11 +5,11 @@ require("dotenv").config(); // Load environment variables
 
 // ✅ PostgreSQL Connection Pool Configuration
 const pool = new Pool({
-  user: user,
-  host: host,
-  database: database,
-  password: password,
-  port: port,
+  host: "postgres-staging-projects.mtechub.com",
+  port: 5432,
+  user: "postgres",
+  password: "mtechub123",
+  database: "app_launchpad",
 });
 
 // ✅ Handle unexpected errors
