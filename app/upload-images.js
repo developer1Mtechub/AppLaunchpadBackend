@@ -71,8 +71,8 @@ router.post("/image", upload.single("image"), async (req, res) => {
 
     // Insert image data into PostgreSQL
     const result = await pool.query(
-      "INSERT INTO uploadImages (user_id, image, image_type, image_group_id) VALUES ($1, $2, $3, $4) RETURNING *",
-      [user_id, imagePath, image_type, image_group_id]
+      "INSERT INTO uploadImages (user_id, image, image_type) VALUES ($1, $2, $3) RETURNING *",
+      [user_id, imagePath, imageType]
     );
 
     res.status(201).json({
@@ -114,10 +114,7 @@ router.get("/image", async (req, res) => {
     const result = await pool.query(query, queryParams);
     res.status(200).json({ error: false, data: result.rows });
   } catch (error) {
-    console.error("Error fetching uploadImages:", error);
-    res
-      .status(500)
-      .json({ error: true, message: "Error fetching uploadImages" });
+    res.status(500).send({ error: "Error fetching uploadImages" });
   }
 });
 
