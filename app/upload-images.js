@@ -57,7 +57,7 @@ router.post("/image", upload.single("image"), async (req, res) => {
 
     // Insert image data into the database
     const result = await pool.query(
-      "INSERT INTO images (user_id, image, image_type) VALUES ($1, $2, $3) RETURNING *",
+      "INSERT INTO uploadImages (user_id, image, image_type) VALUES ($1, $2, $3) RETURNING *",
       [user_id, imagePath, imageType]
     );
 
@@ -67,11 +67,11 @@ router.post("/image", upload.single("image"), async (req, res) => {
   }
 });
 
-// 2. Read: Get images for a specific user with optional image_type filter
+// 2. Read: Get uploadImages for a specific user with optional image_type filter
 router.get("/image", async (req, res) => {
   try {
     const { userId, image_type } = req.query; // Use query parameters instead of body for GET requests
-    let query = "SELECT * FROM images WHERE user_id = $1";
+    let query = "SELECT * FROM uploadImages WHERE user_id = $1";
     let queryParams = [userId];
 
     // If image_type is provided, add it to the query
@@ -83,7 +83,7 @@ router.get("/image", async (req, res) => {
     const result = await pool.query(query, queryParams);
     res.json(result.rows);
   } catch (error) {
-    res.status(500).send({ error: "Error fetching images" });
+    res.status(500).send({ error: "Error fetching uploadImages" });
   }
 });
 
@@ -94,9 +94,10 @@ router.put("/image/:id", upload.single("image"), async (req, res) => {
     const { id } = req.params;
 
     // Fetch the old image path from the database
-    const result = await pool.query("SELECT image FROM images WHERE id = $1", [
-      id,
-    ]);
+    const result = await pool.query(
+      "SELECT image FROM uploadImages WHERE id = $1",
+      [id]
+    );
     if (result.rows.length === 0) {
       return res.status(404).send({ error: "Image not found" });
     }
@@ -116,7 +117,7 @@ router.put("/image/:id", upload.single("image"), async (req, res) => {
 
     // Update the database with the new image path
     const updateResult = await pool.query(
-      "UPDATE images SET image = $1, updated_at = NOW() WHERE id = $2 RETURNING *",
+      "UPDATE uploadImages SET image = $1, updated_at = NOW() WHERE id = $2 RETURNING *",
       [newImagePath, id]
     );
 
@@ -137,7 +138,10 @@ router.delete("/image/:id", async (req, res) => {
     const { id } = req.params;
 
     // Fetch image data to get the file path from the database
-    const result = await pool.query("SELECT * FROM images WHERE id = $1", [id]);
+    const result = await pool.query(
+      "SELECT * FROM uploadImages WHERE id = $1",
+      [id]
+    );
 
     // If no image found, return a 404 error
     if (result.rows.length === 0) {
@@ -163,7 +167,7 @@ router.delete("/image/:id", async (req, res) => {
     fs.unlinkSync(imageFilePath); // Synchronously delete the file from the filesystem
 
     // Now, delete the image record from the database
-    await pool.query("DELETE FROM images WHERE id = $1", [id]);
+    await pool.query("DELETE FROM uploadImages WHERE id = $1", [id]);
 
     // Send success response
     res.json({ message: "Image deleted successfully" });
