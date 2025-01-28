@@ -127,7 +127,6 @@ CREATE TABLE IF NOT EXISTS devices (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Timestamp when the text/image was added
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP  -- Timestamp when the text/image was last updated
 );
-
 -- Create Text table
 CREATE TABLE IF NOT EXISTS elements (
   id SERIAL PRIMARY KEY,            -- Unique identifier for each text entry
