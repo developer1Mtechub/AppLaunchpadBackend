@@ -54,7 +54,7 @@ CREATE TABLE IF NOT EXISTS pages (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP  -- Timestamp when the container was last updated
 );
 
--- Create Text table
+-- Create Texts table
 CREATE TABLE IF NOT EXISTS texts (
   id SERIAL PRIMARY KEY,            -- Unique identifier for each text entry
   page_id INT REFERENCES pages(id) ON DELETE CASCADE, -- Foreign key to link to the pages table
