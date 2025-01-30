@@ -34,6 +34,11 @@ app.use(
   })
 );
 
+//testing the server
+app.get("/api/v1/get", (req, res) => {
+  res.json({ message: "Welcome to the server" });
+});
+
 app.use("/uploads", express.static("uploads"));
 
 //User Routes
@@ -50,6 +55,15 @@ app.use("/api/v1/texts", require("./app/routes/textRoutes.js"));
 
 //Element Routes
 app.use("/api/v1/elements", require("./app/routes/elementRoutes.js"));
+
+//Device Routes
+app.use("/api/v1/devices", require("./app/routes/deviceRoute.js"));
+
+//Image Routes
+app.use("/api/v1/images", require("./app/routes/imagesRoutes.js"));
+
+//Image Group Routes
+app.use("/api/v1/image-groups", require("./app/routes/imageGroupRoutes.js"));
 
 // Asset Routes
 app.use("/api/v1/upload", require("./app/upload-images.js"));

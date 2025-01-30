@@ -13,13 +13,20 @@ CREATE TABLE IF NOT EXISTS users (
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()
 );
-
+-- Create Image Group table
+CREATE TABLE IF NOT EXISTS imageGroup (
+  id SERIAL PRIMARY KEY, -- Unique identifier for each asset
+  image_group_name TEXT, -- Name of the image group
+  created_at TIMESTAMP DEFAULT NOW(), -- Timestamp for when the record was created
+  updated_at TIMESTAMP DEFAULT NOW() -- Timestamp for the last update
+);
 -- Create images table
 CREATE TABLE IF NOT EXISTS uploadImages (
   id SERIAL PRIMARY KEY, -- Unique identifier for each asset
   user_id INT REFERENCES users(user_id), -- Foreign key to link to the users table
   image VARCHAR(255) NOT NULL, -- Stores the image file path or URL
   image_type TEXT,
+  image_group_id INT REFERENCES imageGroup(id), -- Foreign key to link to the imageGroup table
   created_at TIMESTAMP DEFAULT NOW(), -- Timestamp for when the record was created
   updated_at TIMESTAMP DEFAULT NOW() -- Timestamp for the last update
 );
@@ -81,11 +88,14 @@ CREATE TABLE IF NOT EXISTS texts (
 );
 
 -- Create Images table
-CREATE TABLE IF NOT EXISTS images (
+CREATE TABLE IF NOT EXISTS imagesDevice  (
   id SERIAL PRIMARY KEY,            -- Unique identifier for each text entry
-  pages INT REFERENCES pages(id) ON DELETE CASCADE, -- Foreign key to link to the pages table
+  page_id INT REFERENCES pages(id) ON DELETE CASCADE, -- Foreign key to link to the pages table
   name VARCHAR(100) NOT NULL,       -- Name of the text/image
-  rotation_z INT DEFAULT 0,           -- Rotation value for text
+  image_url TEXT NOT NULL,          -- The URL of the image
+  rotation_x INT ,           -- Rotation value for text
+  rotation_y INT ,           -- Rotation value for text
+  rotation_z INT ,           -- Rotation value for text
   x INT ,                 -- X-coordinate for the text/image
   y INT ,                 -- Y-coordinate for the text/image
   width INT ,            -- Width of the text/image
@@ -107,17 +117,17 @@ CREATE TABLE IF NOT EXISTS images (
 -- Create Text tablecc
 CREATE TABLE IF NOT EXISTS devices (
   id SERIAL PRIMARY KEY,            -- Unique identifier for each text entry
-  pages INT REFERENCES pages(id) ON DELETE CASCADE, -- Foreign key to link to the pages table
+  page_id INT REFERENCES pages(id) ON DELETE CASCADE, -- Foreign key to link to the pages table
   name VARCHAR(100) NOT NULL,       -- Name of the text/image
   image_url TEXT NOT NULL,          -- The URL of the image
-  rotation_x INT DEFAULT 0,           -- Rotation value for text
-  rotation_y INT DEFAULT 0,           -- Rotation value for text
-  rotation_z INT DEFAULT 0,           -- Rotation value for 
-  skew_x INT DEFAULT 0,           -- Rotation value for text
-  skew_y INT DEFAULT 0,           -- Rotation value for text
-  shadow_h INT DEFAULT 0,           -- Rotation value for text
-  shadow_w INT DEFAULT 0,           -- Rotation value for text
-  shadow_blur INT DEFAULT 0,           -- Rotation value for text
+  rotation_x INT ,           -- Rotation value for text
+  rotation_y INT ,           -- Rotation value for text
+  rotation_z INT ,           -- Rotation value for 
+  skew_x INT ,           -- Rotation value for text
+  skew_y INT ,           -- Rotation value for text
+  shadow_h INT ,           -- Rotation value for text
+  shadow_w INT ,           -- Rotation value for text
+  shadow_blur INT ,           -- Rotation value for text
   shadow_color VARCHAR(20) DEFAULT '#000000', -- Text color
   x INT ,                 -- X-coordinate for the text/image
   y INT ,                 -- Y-coordinate for the text/image
@@ -132,7 +142,7 @@ CREATE TABLE IF NOT EXISTS elements (
   id SERIAL PRIMARY KEY,            -- Unique identifier for each text entry
   page_id INT REFERENCES pages(id) ON DELETE CASCADE, -- Foreign key to link to the pages table
   name VARCHAR(100) NOT NULL,       -- Name of the text/image
-  rotation_z INT DEFAULT 0,           -- Rotation value for 
+  rotation_z INT ,           -- Rotation value for 
   x INT ,                 -- X-coordinate for the text/image
   y INT ,                 -- Y-coordinate for the text/image
   width INT ,            -- Width of the text/image
@@ -142,6 +152,8 @@ CREATE TABLE IF NOT EXISTS elements (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Timestamp when the text/image was added
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP  -- Timestamp when the text/image was last updated
 );
+
+
 
 
 

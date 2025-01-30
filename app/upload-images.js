@@ -48,42 +48,76 @@ const upload = multer({
 
 // CRUD Routes
 
-// 1. Create: Upload an image and save to the database
+// Route to upload an image
 router.post("/image", upload.single("image"), async (req, res) => {
   try {
+    // Check if file exists
+    if (!req.file) {
+      return res.status(400).json({ error: true, message: "No file uploaded" });
+    }
+
+    // Extract form fields
+    const { user_id, image_type, image_group_id } = req.body;
+
+    // Validate required fields
+    if (!user_id || !image_type || !image_group_id) {
+      return res
+        .status(400)
+        .json({ error: true, message: "Missing required fields" });
+    }
+
+    // Get the uploaded image path
     const imagePath = req.file.path;
 
-    const { user_id, imageType } = req.body; // Assuming user_id is sent with the form
-
-    // Insert image data into the database
+    // Insert image data into PostgreSQL
     const result = await pool.query(
-      "INSERT INTO uploadImages (user_id, image, image_type) VALUES ($1, $2, $3) RETURNING *",
-      [user_id, imagePath, imageType]
+      "INSERT INTO uploadImages (user_id, image, image_type, image_group_id) VALUES ($1, $2, $3, $4) RETURNING *",
+      [user_id, imagePath, image_type, image_group_id]
     );
 
-    res.json({ message: "Image uploaded successfully", image: result.rows[0] });
+    res.status(201).json({
+      error: false,
+      message: "Image uploaded successfully",
+      data: result.rows[0],
+    });
   } catch (error) {
-    res.status(500).send({ error: "Error uploading image" });
+    console.error("Error in image upload:", error);
+    res.status(500).json({ error: true, message: "Error uploading image" });
   }
 });
 
 // 2. Read: Get uploadImages for a specific user with optional image_type filter
 router.get("/image", async (req, res) => {
   try {
-    const { userId, image_type } = req.query; // Use query parameters instead of body for GET requests
+    const { userId, image_type, image_group_id } = req.query; // Use query parameters for GET requests
+
+    if (!userId) {
+      return res.status(400).json({ error: "userId is required" });
+    }
+
     let query = "SELECT * FROM uploadImages WHERE user_id = $1";
     let queryParams = [userId];
+    let paramIndex = 2; // PostgreSQL uses numbered placeholders ($1, $2, etc.)
 
-    // If image_type is provided, add it to the query
+    // Add optional filters
     if (image_type) {
-      query += " AND image_type = $2";
+      query += ` AND image_type = $${paramIndex}`;
       queryParams.push(image_type);
+      paramIndex++;
+    }
+
+    if (image_group_id) {
+      query += ` AND image_group_id = $${paramIndex}`;
+      queryParams.push(image_group_id);
     }
 
     const result = await pool.query(query, queryParams);
-    res.json(result.rows);
+    res.status(200).json({ error: false, data: result.rows });
   } catch (error) {
-    res.status(500).send({ error: "Error fetching uploadImages" });
+    console.error("Error fetching uploadImages:", error);
+    res
+      .status(500)
+      .json({ error: true, message: "Error fetching uploadImages" });
   }
 });
 
@@ -99,7 +133,7 @@ router.put("/image/:id", upload.single("image"), async (req, res) => {
       [id]
     );
     if (result.rows.length === 0) {
-      return res.status(404).send({ error: "Image not found" });
+      return res.status(404).send({ error: true, message: "Image not found" });
     }
 
     const oldImagePath = result.rows[0].image; // Old image path stored in the database
@@ -123,12 +157,13 @@ router.put("/image/:id", upload.single("image"), async (req, res) => {
 
     // Respond with the success message and updated image data
     res.json({
+      error: false,
       message: "Image updated successfully",
-      image: updateResult.rows[0],
+      data: updateResult.rows[0],
     });
   } catch (error) {
     console.error("Error updating image:", error);
-    res.status(500).send({ error: "Error updating image" });
+    res.status(500).send({ error: true, message: "Error updating image" });
   }
 });
 
@@ -139,42 +174,36 @@ router.delete("/image/:id", async (req, res) => {
 
     // Fetch image data to get the file path from the database
     const result = await pool.query(
-      "SELECT * FROM uploadImages WHERE id = $1",
+      "SELECT image FROM uploadImages WHERE id = $1",
       [id]
     );
 
-    // If no image found, return a 404 error
     if (result.rows.length === 0) {
-      return res.status(404).send({ error: "Image not found" });
+      return res.status(404).json({ error: true, message: "Image not found" });
     }
 
-    const imagePath = result.rows[0].image; // Retrieve the image path from the database
+    const imagePath = result.rows[0].image; // Path stored in DB (could be relative)
+    const baseDirectory = path.join(__dirname, ".."); // Adjust as needed
 
-    // Construct the full path to the image file
-    const imageFilePath = path.join(
-      "D:",
-      "MTechub",
-      "AppLaunchpadBackend",
-      imagePath
-    );
+    // Construct the absolute path to the image file
+    const imageFilePath = path.join(baseDirectory, imagePath);
 
     // Check if the file exists before attempting to delete it
-    if (!fs.existsSync(imageFilePath)) {
-      return res.status(404).send({ error: "Image file not found on server" });
+    if (fs.existsSync(imageFilePath)) {
+      fs.unlinkSync(imageFilePath); // Delete the image file
+    } else {
+      console.warn(`File not found: ${imageFilePath}`);
     }
 
-    // Delete the image file from the server
-    fs.unlinkSync(imageFilePath); // Synchronously delete the file from the filesystem
-
-    // Now, delete the image record from the database
+    // Delete the image record from the database
     await pool.query("DELETE FROM uploadImages WHERE id = $1", [id]);
 
-    // Send success response
-    res.json({ message: "Image deleted successfully" });
+    res
+      .status(200)
+      .json({ error: false, message: "Image deleted successfully" });
   } catch (error) {
-    // Log the error to the console and send a 500 server error response
     console.error("Error deleting image:", error);
-    res.status(500).send({ error: "Error deleting image" });
+    res.status(500).json({ error: true, message: "Error deleting image" });
   }
 });
 
