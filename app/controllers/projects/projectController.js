@@ -14,6 +14,16 @@ class ProjectController {
       }
 
       const { project_title, user_id, pages } = req.body;
+      //find the user
+      const userQuery = "SELECT * FROM users WHERE user_id = $1";
+      const userResult = await pool.query(userQuery, [user_id]);
+      //please validation rewq
+      if (userResult.rows.length === 0) {
+        return res.status(404).json({
+          error: true,
+          message: "User not found",
+        });
+      }
 
       // Ensure user_id and pages are integers
       if (!Number.isInteger(Number(user_id))) {

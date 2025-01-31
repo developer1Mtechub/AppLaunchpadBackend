@@ -10,11 +10,11 @@ const PagesController = {
         width,
         background_color,
         background_image,
-        background_image_type,
+        background_type,
       } = req.body;
 
       const query = `
-        INSERT INTO pages (project_id, height, width, background_color, background_image, background_image_type)
+        INSERT INTO pages (project_id, height, width, background_color, background_image, background_type)
         VALUES ($1, $2, $3, $4, $5, $6)
         RETURNING *;
       `;
@@ -25,7 +25,7 @@ const PagesController = {
         width,
         background_color,
         background_image,
-        background_image_type,
+        background_type,
       ]);
 
       res.status(201).json({
@@ -200,7 +200,7 @@ const PagesController = {
         width,
         background_color,
         background_image,
-        background_image_type,
+        background_type,
       } = req.body;
 
       const query = `
@@ -210,7 +210,7 @@ const PagesController = {
           width = COALESCE($2, width),
           background_color = COALESCE($3, background_color),
           background_image = COALESCE($4, background_image),
-          background_image_type = COALESCE($5, background_image_type),
+          background_type = COALESCE($5, background_type),
           updated_at = CURRENT_TIMESTAMP
         WHERE id = $6
         RETURNING *;
@@ -221,7 +221,7 @@ const PagesController = {
         width,
         background_color,
         background_image,
-        background_image_type,
+        background_type,
         id,
       ]);
 

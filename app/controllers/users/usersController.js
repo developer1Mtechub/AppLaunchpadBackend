@@ -13,25 +13,43 @@ class User {
   // Register user controller
   async register(req, res) {
     const errors = validationResult(req);
-
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array(), error: true });
     }
 
-    const { user_name, email, password, signup_type, fcm } = req.body;
+    const { name, email, password, type, fcm, token } = req.body;
 
-    if (!email || !signup_type || !fcm) {
+    // Validate type
+    const validTypes = ["EMAIL", "GOOGLE", "APPLE"];
+    if (!validTypes.includes(type)) {
       return res.status(400).json({
         error: true,
-        message: "Please provide both Email and Signup Type.",
+        message: "Invalid signup type. Allowed types: EMAIL, GOOGLE, APPLE.",
       });
     }
-    if (signup_type === "GOOGLE" && !fcm) {
+
+    // Validate required fields based on type
+    if (!email) {
       return res.status(400).json({
         error: true,
-        message: "Please provide Access Token for Google Signup.",
+        message: "Email is required.",
       });
     }
+
+    if ((type === "GOOGLE" || type === "APPLE") && !token) {
+      return res.status(400).json({
+        error: true,
+        message: "Token is required for Google and Apple signup.",
+      });
+    }
+
+    if (type === "EMAIL" && !password) {
+      return res.status(400).json({
+        error: true,
+        message: "Password is required for Email signup.",
+      });
+    }
+
     try {
       // Check if the user already exists
       const userDataCheck = await pool.query(
@@ -39,7 +57,7 @@ class User {
         [email]
       );
 
-      if (userDataCheck?.rows[0]?.email) {
+      if (userDataCheck.rows.length > 0) {
         return res.status(400).json({
           errors: [
             {
@@ -51,22 +69,27 @@ class User {
         });
       }
 
-      // Hash password
-      const hashed = await hashedPassword(password);
+      let hashed = null;
+      if (type === "EMAIL") {
+        // Hash the password
 
-      // Insert new user
+        hashed = await hashedPassword(password);
+      }
+
+      // Insert new user with appropriate fields
       const userData = await pool.query(
-        "INSERT INTO users (user_name, email, password, signup_type, fcm) VALUES ($1, $2, $3, $4, $5) RETURNING *",
-        [user_name, email, hashed, signup_type, fcm]
+        `INSERT INTO users (name, email, password, type, fcm, token, created_at, updated_at) 
+             VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW()) RETURNING *`,
+        [name, email, hashed, type, fcm || null, token || null]
       );
 
       const user = userData.rows[0];
 
       // Generate token
-      const token = createToken(
+      const authToken = createToken(
         {
           id: user.user_id,
-          name: user.user_name,
+          name: user.name,
         },
         "7d"
       );
@@ -75,7 +98,7 @@ class User {
         error: false,
         message: "User created successfully.",
         data: user,
-        token,
+        token: authToken,
       });
     } catch (error) {
       console.error("Error:", error);
@@ -88,7 +111,7 @@ class User {
 
   // Login user controller
   async login(req, res) {
-    const { email, password, signup_type, fcm } = req.body;
+    const { email, password, type, fcm } = req.body;
     const errors = validationResult(req);
 
     if (!errors.isEmpty()) {
@@ -111,7 +134,7 @@ class User {
       const user = userData.rows[0];
 
       // If the signup type in the database is 'google' and the user tries to log in with email/password
-      if (user.signup_type === "GOOGLE" && signup_type === "EMAIL") {
+      if (user.type === "GOOGLE" && type === "EMAIL") {
         return res.status(400).json({
           error: true,
           message:
@@ -120,7 +143,7 @@ class User {
       }
 
       // Handle Google login
-      if (signup_type === "GOOGLE") {
+      if (type === "GOOGLE") {
         // Ensure fcm is provided
         if (!fcm) {
           return res.status(400).json({
@@ -133,7 +156,7 @@ class User {
         const newToken = createToken(
           {
             id: user.user_id,
-            name: user.user_name,
+            name: user.name,
           },
           "7d"
         );
@@ -153,7 +176,7 @@ class User {
       }
 
       // Handle email/password login
-      if (signup_type === "EMAIL") {
+      if (type === "EMAIL") {
         const validPassword = await comparePassword(password, user.password);
         if (!validPassword) {
           return res.status(400).json({
@@ -166,7 +189,7 @@ class User {
         const token = createToken(
           {
             id: user.user_id,
-            name: user.user_name,
+            name: user.name,
           },
           "7d"
         );
@@ -330,6 +353,84 @@ class User {
       });
     } catch (error) {
       console.error("Error:", error);
+      return res.status(500).json({
+        error: true,
+        message: "Internal Server Error!",
+      });
+    }
+  }
+  // Controller to update the user 'name' and 'avatar' using user_id from req.params
+  async updateUser(req, res) {
+    const { user_id } = req.params; // Get user_id from the request params
+    const { name, avatar } = req.body; // Get 'name' and 'avatar' from the request body
+
+    // Validate inputs
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array(), error: true });
+    }
+
+    // Check if user exists
+    const userCheck = await pool.query(
+      "SELECT * FROM users WHERE user_id = $1",
+      [user_id]
+    );
+    if (!userCheck.rows[0]) {
+      return res.status(404).json({ error: true, message: "User not found!" });
+    }
+
+    try {
+      // Update user name and avatar
+      const updatedUser = await pool.query(
+        `UPDATE users
+         SET name = $1, avatar = $2, updated_at = NOW()
+         WHERE user_id = $3
+         RETURNING *`,
+        [name, avatar, user_id]
+      );
+
+      // Return the updated user data
+      return res.status(200).json({
+        error: false,
+        message: "User updated successfully!",
+        data: updatedUser.rows[0],
+      });
+    } catch (error) {
+      console.error("Error updating user:", error);
+      return res.status(500).json({
+        error: true,
+        message: "Internal Server Error!",
+      });
+    }
+  }
+
+  //get user by id
+  async getUserById(req, res) {
+    const { user_id } = req.params; // Get user_id from the request params
+
+    // Check if user exists
+    const userCheck = await pool.query(
+      "SELECT * FROM users WHERE user_id = $1",
+      [user_id]
+    );
+    if (!userCheck.rows[0]) {
+      return res.status(404).json({ error: true, message: "User not found!" });
+    }
+
+    try {
+      // Get user by user_id
+      const user = await pool.query(
+        "SELECT user_id, name, email, avatar, type FROM users WHERE user_id = $1",
+        [user_id]
+      );
+
+      return res.status(200).json({
+        error: false,
+        message: "User fetched successfully!",
+        data: user.rows[0],
+      });
+    } catch (error) {
+      console.error("Error fetching user:", error);
       return res.status(500).json({
         error: true,
         message: "Internal Server Error!",

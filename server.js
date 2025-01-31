@@ -68,6 +68,9 @@ app.use("/api/v1/image-groups", require("./app/routes/imageGroupRoutes.js"));
 // Asset Routes
 app.use("/api/v1/upload", require("./app/upload-images.js"));
 
+// Project Image Routes
+app.use("/api/v1/project-images", require("./app/upload-project-images.js"));
+
 app.listen(PORT, () => {
   console.log(`
 ################################################
